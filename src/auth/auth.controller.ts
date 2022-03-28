@@ -1,8 +1,8 @@
 // ========== Auth Controller
 // import all modules
-import { Controller, Request, Body, Post } from '@nestjs/common';
+import { Controller, Request, Body, Post, Headers } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterDto } from './dto';
+import { LoginDto, RegisterDto } from './dto';
 
 @Controller('api/v1')
 export class AuthController {
@@ -11,5 +11,18 @@ export class AuthController {
 	@Post('auth/register')
 	public register(@Request() req: Request, @Body() dto: RegisterDto) {
 		return this.authService.register(req, dto);
+	}
+
+	@Post('auth/login')
+	public login(@Request() req: Request, @Body() dto: LoginDto) {
+		return this.authService.login(req, dto);
+	}
+
+	@Post('auth/access-token')
+	public createAccessToken(
+		@Request() req: Request,
+		@Headers() headers: Headers,
+	) {
+		return this.authService.createAccessToken(req, headers);
 	}
 }

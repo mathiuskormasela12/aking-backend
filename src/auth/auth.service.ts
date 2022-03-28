@@ -1,14 +1,21 @@
 // ========== Auth Service
 // import all modules
-import { Injectable, Request, Body, HttpStatus } from '@nestjs/common';
+import { Injectable, Request, Body, HttpStatus, Headers } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import * as argon from 'argon2';
 import { PrismaService } from '../prisma/prisma.service';
 import { response, responseGenerator } from '../helpers';
-import { RegisterDto } from './dto';
+import { LoginDto, RegisterDto } from './dto';
 
 @Injectable()
 export class AuthService {
-	constructor(private prisma: PrismaService) {}
+	constructor(
+		private prisma: PrismaService,
+		private jwt: JwtService,
+		private config: ConfigService,
+	) {}
+
 	public async register(@Request() req: Request, @Body() dto: RegisterDto) {
 		if (dto.password !== dto.passwordConfirmation) {
 			throw response({
@@ -50,7 +57,7 @@ export class AuthService {
 
 					throw responseGenerator(
 						req.url,
-						HttpStatus.OK,
+						HttpStatus.CREATED,
 						true,
 						'Register Successfully',
 						result,
@@ -79,6 +86,112 @@ export class AuthService {
 					throw err;
 				}
 			}
+		} catch (err) {
+			if (err instanceof Error) {
+				throw response({
+					status: HttpStatus.BAD_REQUEST,
+					success: false,
+					message: err.message,
+				});
+			} else {
+				throw response(err);
+			}
+		}
+	}
+
+	public async login(@Request() req: Request, @Body() dto: LoginDto) {
+		try {
+			const user = await this.prisma.user.findUnique({
+				where: {
+					username: dto.username,
+				},
+			});
+
+			if (!user || !(await argon.verify(user.password, dto.password))) {
+				throw responseGenerator(
+					req.url,
+					HttpStatus.BAD_REQUEST,
+					false,
+					'The username or the password is wrong',
+				);
+			}
+			const accessTokenSecret = this.config.get('JWT_ACCESS_TOKEN_SECRET_KEY');
+			const accessTokenExpiresIn = this.config.get('ACCESS_TOKEN_EXPIRES_IN');
+			const refreshTokenExpiresIn = this.config.get('REFRESH_TOKEN_EXPIRES_IN');
+			const refreshTokenSecret = this.config.get(
+				'JWT_REFRESH_TOKEN_SECRET_KEY',
+			);
+			const accessToken = this.jwt.sign(
+				{ id: user.id },
+				{ expiresIn: accessTokenExpiresIn, secret: accessTokenSecret },
+			);
+			const refreshToken = this.jwt.sign(
+				{ id: user.id },
+				{ expiresIn: refreshTokenExpiresIn, secret: refreshTokenSecret },
+			);
+
+			throw responseGenerator(
+				req.url,
+				HttpStatus.CREATED,
+				true,
+				'Login Successfully',
+				{ accessToken, refreshToken },
+			);
+		} catch (err) {
+			if (err instanceof Error) {
+				throw response({
+					status: HttpStatus.BAD_REQUEST,
+					success: false,
+					message: err.message,
+				});
+			} else {
+				throw response(err);
+			}
+		}
+	}
+
+	public async createAccessToken(
+		@Request() req: Request,
+		@Headers() headers: Headers,
+	) {
+		const refreshToken = headers['x-refresh-token'];
+
+		if (!refreshToken) {
+			throw response({
+				status: HttpStatus.FORBIDDEN,
+				success: false,
+				message: 'Forbidden',
+			});
+		}
+
+		const refreshTokenSecret = this.config.get('JWT_REFRESH_TOKEN_SECRET_KEY');
+		const refreshTokenExpiresIn = this.config.get('REFRESH_TOKEN_EXPIRES_IN');
+
+		try {
+			const decode = this.jwt.verify(refreshToken, {
+				secret: refreshTokenSecret,
+			});
+			const accesssTokenSecret = this.config.get('JWT_ACCESS_TOKEN_SECRET_KEY');
+			const accessTokenExpiresIn = this.config.get('ACCESS_TOKEN_EXPIRES_IN');
+			const newAccessToken = this.jwt.sign(
+				{ id: decode.id },
+				{ secret: accesssTokenSecret, expiresIn: accessTokenExpiresIn },
+			);
+			const newRefreshToken = this.jwt.sign(
+				{ id: decode.id },
+				{ secret: refreshTokenSecret, expiresIn: refreshTokenExpiresIn },
+			);
+
+			throw responseGenerator(
+				req.url,
+				HttpStatus.CREATED,
+				true,
+				'The access token is created successfully',
+				{
+					accessToken: newAccessToken,
+					refreshToken: newRefreshToken,
+				},
+			);
 		} catch (err) {
 			if (err instanceof Error) {
 				throw response({
