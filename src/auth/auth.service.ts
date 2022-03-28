@@ -1,12 +1,12 @@
 // ========== Auth Service
 // import all modules
-import { Injectable, Request, Body, HttpStatus, Headers } from '@nestjs/common';
+import { Injectable, Request, Body, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon from 'argon2';
 import { PrismaService } from '../prisma/prisma.service';
 import { response, responseGenerator } from '../helpers';
-import { LoginDto, RegisterDto } from './dto';
+import { CreateAccessTokenDto, LoginDto, RegisterDto } from './dto';
 
 @Injectable()
 export class AuthService {
@@ -152,23 +152,13 @@ export class AuthService {
 
 	public async createAccessToken(
 		@Request() req: Request,
-		@Headers() headers: Headers,
+		@Body() dto: CreateAccessTokenDto,
 	) {
-		const refreshToken = headers['x-refresh-token'];
-
-		if (!refreshToken) {
-			throw response({
-				status: HttpStatus.FORBIDDEN,
-				success: false,
-				message: 'Forbidden',
-			});
-		}
-
 		const refreshTokenSecret = this.config.get('JWT_REFRESH_TOKEN_SECRET_KEY');
 		const refreshTokenExpiresIn = this.config.get('REFRESH_TOKEN_EXPIRES_IN');
 
 		try {
-			const decode = this.jwt.verify(refreshToken, {
+			const decode = this.jwt.verify(dto.refreshToken, {
 				secret: refreshTokenSecret,
 			});
 			const accesssTokenSecret = this.config.get('JWT_ACCESS_TOKEN_SECRET_KEY');
