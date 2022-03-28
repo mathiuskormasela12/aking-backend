@@ -1,10 +1,9 @@
 // ========== Register Dto
-
 import {
-	IsAlphanumeric,
 	IsEmail,
 	IsNotEmpty,
 	IsString,
+	Matches,
 	MinLength,
 } from 'class-validator';
 
@@ -19,11 +18,21 @@ export class RegisterDto {
 	@IsNotEmpty({ message: "The username can't be empty" })
 	username: string;
 
-	@IsAlphanumeric()
+	@IsString({ message: 'The password must be a string' })
+	@MinLength(5, { message: 'The password is too short' })
+	@Matches(/([A-Z])/, { message: 'The password is too weak' })
+	@Matches(/([A-Z])/, { message: 'The password is too weak' })
+	@Matches(/([0-9])/, { message: 'The password is too weak' })
+	@Matches(/[\W]/, { message: 'The password is too weak' })
 	@IsNotEmpty({ message: "The password can't be empty" })
 	password: string;
 
-	@IsAlphanumeric()
+	@IsString({ message: 'The password confirmation must be a string' })
+	@MinLength(5, { message: 'The password confirmation is too short' })
+	@Matches(/([A-Z])/, { message: 'The password confirmation is too weak' })
+	@Matches(/([A-Z])/, { message: 'The password confirmation is too weak' })
+	@Matches(/([0-9])/, { message: 'The password confirmation is too weak' })
+	@Matches(/[\W]/, { message: 'The password confirmation is too weak' })
 	@IsNotEmpty({ message: "The password confirmation can't be empty" })
 	passwordConfirmation: string;
 }

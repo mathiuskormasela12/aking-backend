@@ -16,6 +16,7 @@ model User {
 	username String @unique
 	photo String @db.VarChar(255) @default("nophoto.png")
 	type String @default("USER")
+	password String @db.VarChar(255)
 	createdAt DateTime @default(now())
 	updatedAt DateTime @updatedAt
 
