@@ -3,10 +3,16 @@
 import { Injectable, Request, Body, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { MailerService } from '@nestjs-modules/mailer';
 import * as argon from 'argon2';
 import { PrismaService } from '../prisma/prisma.service';
-import { response, responseGenerator } from '../helpers';
-import { CreateAccessTokenDto, LoginDto, RegisterDto } from './dto';
+import { response, responseGenerator, sendResetCode } from '../helpers';
+import {
+	CreateAccessTokenDto,
+	GetResetCodeDto,
+	LoginDto,
+	RegisterDto,
+} from './dto';
 
 @Injectable()
 export class AuthService {
@@ -14,6 +20,7 @@ export class AuthService {
 		private prisma: PrismaService,
 		private jwt: JwtService,
 		private config: ConfigService,
+		private mailer: MailerService,
 	) {}
 
 	public async register(@Request() req: Request, @Body() dto: RegisterDto) {
@@ -182,6 +189,99 @@ export class AuthService {
 					refreshToken: newRefreshToken,
 				},
 			);
+		} catch (err) {
+			if (err instanceof Error) {
+				throw response({
+					status: HttpStatus.BAD_REQUEST,
+					success: false,
+					message: err.message,
+				});
+			} else {
+				throw response(err);
+			}
+		}
+	}
+
+	public async getResetCode(
+		@Request() req: Request,
+		@Body() dto: GetResetCodeDto,
+	) {
+		try {
+			const user = await this.prisma.user.findUnique({
+				where: {
+					username: dto.username,
+				},
+			});
+
+			if (!user) {
+				throw responseGenerator(
+					req.url,
+					HttpStatus.NOT_FOUND,
+					false,
+					"The username doesn't exists",
+				);
+			}
+
+			if (user.resetCode) {
+				throw responseGenerator(
+					req.url,
+					HttpStatus.BAD_REQUEST,
+					false,
+					'You have the reset code already, please check your email',
+				);
+			}
+
+			const resetCode = `${Math.floor(Math.random() * 9) + 1}${
+				Math.floor(Math.random() * 9) + 1
+			}${Math.floor(Math.random() * 9) + 1}${
+				Math.floor(Math.random() * 9) + 1
+			}`;
+
+			try {
+				await sendResetCode(
+					this.mailer,
+					dto.username,
+					this.config.get('EMAIL'),
+					resetCode,
+				);
+
+				try {
+					await this.prisma.user.update({
+						where: { id: user.id },
+						data: { resetCode },
+					});
+
+					throw responseGenerator(
+						req.url,
+						HttpStatus.CREATED,
+						true,
+						'The reset code has been sent',
+					);
+				} catch (err) {
+					if (err instanceof Error) {
+						throw responseGenerator(
+							req.url,
+							HttpStatus.BAD_REQUEST,
+							false,
+							err.message,
+						);
+					} else {
+						throw err;
+					}
+				}
+			} catch (err) {
+				if (err instanceof Error) {
+					console.log(err, this.config.get('EMAIL'));
+					throw responseGenerator(
+						req.url,
+						HttpStatus.BAD_REQUEST,
+						false,
+						err.message,
+					);
+				} else {
+					throw err;
+				}
+			}
 		} catch (err) {
 			if (err instanceof Error) {
 				throw response({

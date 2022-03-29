@@ -2,7 +2,12 @@
 // import all modules
 import { Controller, Request, Body, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CreateAccessTokenDto, LoginDto, RegisterDto } from './dto';
+import {
+	CreateAccessTokenDto,
+	GetResetCodeDto,
+	LoginDto,
+	RegisterDto,
+} from './dto';
 
 @Controller('api/v1')
 export class AuthController {
@@ -24,5 +29,10 @@ export class AuthController {
 		@Body() dto: CreateAccessTokenDto,
 	) {
 		return this.authService.createAccessToken(req, dto);
+	}
+
+	@Post('auth/password')
+	public getResetCode(@Request() req: Request, @Body() dto: GetResetCodeDto) {
+		return this.authService.getResetCode(req, dto);
 	}
 }
