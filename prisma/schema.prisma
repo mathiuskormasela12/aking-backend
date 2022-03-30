@@ -21,5 +21,77 @@ model User {
 	createdAt DateTime @default(now())
 	updatedAt DateTime @updatedAt
 
+	User_User_creatorToUser Task[] @relation("Task_creatorToUser")
+	User_User_memberToUser Task[] @relation("Task_memberToUser")
+	User_User_userIdToUser Task[] @relation("Task_userIdToUser")
+	
+	comments Comment[]
+
 	@@map("users")
+}
+
+model Task {
+	id Int @id @default(autoincrement())
+	title String @db.VarChar(255)
+	description String @db.LongText
+	dueDate DateTime
+
+	creatorId Int
+	User_Task_creatorToUser User @relation("Task_creatorToUser", fields: [creatorId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+	memberId Int
+	User_Task_memberToUser User @relation("Task_memberToUser", fields: [memberId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+	userId Int
+	User_Task_userIdToUser User @relation("Task_userIdToUser", fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+	projectId Int
+	projects Project @relation(fields: [projectId], references: [id])
+
+	createdAt DateTime @default(now())
+
+	Comment_Comment_taskIdToTask Comment[] @relation("Comment_taskIdToTask")
+
+	@@map("tasks")
+}
+
+model Project {
+	id Int @id @default(autoincrement())
+	title String
+	color String
+
+	createdAt DateTime @default(now())
+	updatedAt DateTime @updatedAt
+
+	tasks Task[]
+	taskMembers TaskMember[]
+
+	@@map("projects")
+}
+
+model TaskMember {
+	id Int @id @default(autoincrement())
+
+	projectId Int
+	projects Project @relation(fields: [projectId], references: [id])
+
+	createdAt DateTime @default(now())
+	updatedAt DateTime @updatedAt
+
+	@@map("taskMembers")
+}
+
+model Comment {
+	id Int @id @default(autoincrement())
+	title String
+	file String?
+
+	creatorId Int
+	users User @relation(fields: [creatorId], references: [id])
+
+	taskId Int
+	Task_Comment_taskIdToTask Task @relation("Comment_taskIdToTask", fields: [taskId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+	createdAt DateTime @default(now())
+	updatedAt DateTime @updatedAt
 }
