@@ -9,9 +9,8 @@ import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UserModule } from './user/user.module';
 import { appConfig } from './config';
-console.log(
-	`smtps://${appConfig.EMAIL.NAME}:${appConfig.EMAIL.PASSWORD}@${appConfig.EMAIL.HOST}`,
-);
+import { TaskModule } from './task/task.module';
+
 @Module({
 	imports: [
 		/* 
@@ -33,6 +32,7 @@ console.log(
 		AuthModule,
 		UserModule,
 		PrismaModule,
+		TaskModule,
 	],
 })
 export class AppModule {}
