@@ -12,6 +12,7 @@ import {
 	GetResetCodeDto,
 	LoginDto,
 	RegisterDto,
+	ResetPasswordDto,
 } from './dto';
 
 @Injectable()
@@ -275,6 +276,84 @@ export class AuthService {
 					throw responseGenerator(
 						req.url,
 						HttpStatus.BAD_REQUEST,
+						false,
+						err.message,
+					);
+				} else {
+					throw err;
+				}
+			}
+		} catch (err) {
+			if (err instanceof Error) {
+				throw response({
+					status: HttpStatus.BAD_REQUEST,
+					success: false,
+					message: err.message,
+				});
+			} else {
+				throw response(err);
+			}
+		}
+	}
+
+	public async resetPassword(
+		@Request() req: Request,
+		@Body() dto: ResetPasswordDto,
+	) {
+		if (dto.password !== dto.passwordConfirmation) {
+			throw response({
+				status: HttpStatus.BAD_REQUEST,
+				success: false,
+				message: "The password and the confirm password doesn't match",
+			});
+		}
+
+		try {
+			const user = await this.prisma.user.findFirst({
+				where: { resetCode: dto.resetCode },
+			});
+
+			if (!user) {
+				throw responseGenerator(
+					req.url,
+					HttpStatus.BAD_REQUEST,
+					false,
+					"The reset code doesn't exists",
+				);
+			}
+
+			try {
+				const hashed = await argon.hash(dto.password);
+
+				try {
+					await this.prisma.user.update({
+						where: { id: user.id },
+						data: { password: hashed, resetCode: null },
+					});
+
+					throw responseGenerator(
+						req.url,
+						HttpStatus.OK,
+						true,
+						'The password has been updated',
+					);
+				} catch (err) {
+					if (err instanceof Error) {
+						throw responseGenerator(
+							req.url,
+							HttpStatus.BAD_REQUEST,
+							false,
+							err.message,
+						);
+					} else {
+						throw err;
+					}
+				}
+			} catch (err) {
+				if (err instanceof Error) {
+					throw responseGenerator(
+						req.url,
+						HttpStatus.INTERNAL_SERVER_ERROR,
 						false,
 						err.message,
 					);
