@@ -47,11 +47,11 @@ model Task {
 	owner User @relation("Task_userIdToUser", fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
 	projectId Int
-	projects Project @relation(fields: [projectId], references: [id])
+	projects Project @relation(fields: [projectId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
 	createdAt DateTime @default(now())
 
-	Comment_Comment_taskIdToTask Comment[] @relation("Comment_taskIdToTask")
+	comment Comment[] @relation("Comment_taskIdToTask")
 
 	@@map("tasks")
 }
@@ -74,7 +74,7 @@ model TaskMember {
 	id Int @id @default(autoincrement())
 
 	projectId Int
-	projects Project @relation(fields: [projectId], references: [id])
+	projects Project @relation(fields: [projectId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
 	createdAt DateTime @default(now())
 	updatedAt DateTime @updatedAt
@@ -88,7 +88,7 @@ model Comment {
 	file String?
 
 	creatorId Int
-	users User @relation(fields: [creatorId], references: [id])
+	users User @relation(fields: [creatorId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
 	taskId Int
 	taskComment Task @relation("Comment_taskIdToTask", fields: [taskId], references: [id], onUpdate: Cascade, onDelete: Cascade)

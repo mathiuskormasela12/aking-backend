@@ -10,6 +10,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { UserModule } from './user/user.module';
 import { appConfig } from './config';
 import { TaskModule } from './task/task.module';
+import { ProjectModule } from './project/project.module';
 
 @Module({
 	imports: [
@@ -31,8 +32,9 @@ import { TaskModule } from './task/task.module';
 		}),
 		AuthModule,
 		UserModule,
-		PrismaModule,
 		TaskModule,
+		ProjectModule,
+		PrismaModule,
 	],
 })
 export class AppModule {}
